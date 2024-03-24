@@ -18,19 +18,17 @@ N = 512
 def f_true(x) :
     return (x-2) * np.cos(x*4)
 
-def sig(x) :
-    return 1/(1+np.exp(-x))
-
 torch.manual_seed(0)
 X_train = torch.normal(0.0, 1.0, (N,))
 # P1
-# y_train = f_true(X_train)
+y_train = f_true(X_train)
 # P2
-y_train = f_true(X_train) + torch.normal(0, 0.5, X_train.shape)
+y_train_ = f_true(X_train) + torch.normal(0, 0.5, X_train.shape)
 X_val = torch.normal(0.0, 1.0, (N//5,))
 y_val = f_true(X_val)
 
-train_dataloader = DataLoader(TensorDataset(X_train.unsqueeze(1), y_train.unsqueeze(1)), batch_size=B)
+train_dataloader = DataLoader(TensorDataset(X_train.unsqueeze(1), y_train.unsqueeze(1)), batch_size=B, shuffle=True)
+train_dataloader_ = DataLoader(TensorDataset(X_train.unsqueeze(1), y_train_.unsqueeze(1)), batch_size=B, shuffle=True)
 test_dataloader = DataLoader(TensorDataset(X_val.unsqueeze(1), y_val.unsqueeze(1)), batch_size=B)
 
 '''
@@ -61,12 +59,6 @@ class MLP(nn.Module):
         x = self.layer3(x) # B*1
         return x
 
-def cal(tens):
-    a = list(tens.shape)
-    b = 1
-    for k in a:
-        b *= k
-    return b
 # Model initialization
 model = MLP()
 model.layer1.weight.data = torch.normal(0, 1, model.layer1.weight.shape)
@@ -75,34 +67,56 @@ model.layer2.weight.data = torch.normal(0, 1, model.layer2.weight.shape)
 model.layer2.bias.data = torch.full(model.layer2.bias.shape, 0.03)
 model.layer3.weight.data = torch.normal(0, 1, model.layer3.weight.shape)
 model.layer3.bias.data = torch.full(model.layer3.bias.shape, 0.03)
+model_ = MLP()
+model_.layer1.weight.data = torch.normal(0, 1, model_.layer1.weight.shape)
+model_.layer1.bias.data = torch.full(model_.layer1.bias.shape, 0.03)
+model_.layer2.weight.data = torch.normal(0, 1, model_.layer2.weight.shape)
+model_.layer2.bias.data = torch.full(model_.layer2.bias.shape, 0.03)
+model_.layer3.weight.data = torch.normal(0, 1, model_.layer3.weight.shape)
+model_.layer3.bias.data = torch.full(model_.layer3.bias.shape, 0.03)
 
-# model.to(device)
+model.to(device)
 loss_fn = nn.MSELoss()
 optimizer = optim.SGD(model.parameters(), lr=alpha)
+model_.to(device)
+loss_fn_ = nn.MSELoss()
+optimizer_ = optim.SGD(model_.parameters(), lr=alpha)
 s3 = time.time()
 print('Model Initialization :', s3-s2)
 # Train
 for epoch in range(K):
     for x, y in train_dataloader:
-        # x, y = x.to(device), y.to(device)
+        x, y = x.to(device), y.to(device)
 
         optimizer.zero_grad()
         train_loss = loss_fn(model(x), y)/2
         train_loss.backward()
 
         optimizer.step()
+
+    for x, y in train_dataloader_:
+        x, y = x.to(device), y.to(device)
+
+        optimizer_.zero_grad()
+        train_loss_ = loss_fn_(model_(x), y)/2
+        train_loss_.backward()
+
+        optimizer_.step()
 s4 = time.time()
 print('Training :',s4-s3)
 with torch.no_grad():
     xx = torch.linspace(-2,2,1024).unsqueeze(1)
-    # model.to('cpu')
-    plt.plot(X_train,y_train, 'rx',label='Data points')
+    model.to('cpu')
+    model_.to('cpu')
+    # plt.plot(X_train,y_train, 'rx',label='Data points')
     plt.plot(xx, f_true(xx), 'r',label='True Fn')
     plt.plot(xx, model(xx), label='Learned Fn')
+    plt.plot(xx, model_(xx), label='Learned Fn with noisy label')
 plt.legend()
 s5 = time.time()
 print('Plotting :', s5-s4)
 plt.show()
+
 
 '''
 When plotting torch tensors, you want to work with the
