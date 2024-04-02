@@ -39,13 +39,13 @@ class C3_layer_full(nn.Module):
 class C3_layer(nn.Module):
     def __init__(self):
         super(C3_layer, self).__init__()
-        self.ch_in_3 = [[0, 1, 2],
+        self.ch_in = [[0, 1, 2],
                         [1, 2, 3],
                         [2, 3, 4],
                         [3, 4, 5],
                         [0, 4, 5],
-                        [0, 1, 5]] # filter with 3 subset of input channels
-        self.ch_in_4 = [[0, 1, 2, 3],
+                        [0, 1, 5],
+                        [0, 1, 2, 3],
                         [1, 2, 3, 4],
                         [2, 3, 4, 5],
                         [0, 3, 4, 5],
@@ -53,14 +53,19 @@ class C3_layer(nn.Module):
                         [0, 1, 2, 5],
                         [0, 1, 3, 4],
                         [1, 2, 4, 5],
-                        [0, 2, 3, 5]] # filter with 4 subset of input channels
-        # put implementation here
-        pass
+                        [0, 2, 3, 5],
+                        [0, 1, 2, 3, 4, 5]]
+        self.conv_layer = nn.ModuleList([nn.Conv2d(3,1, kernel_size=5) for _ in range(6)]+
+                                        [nn.Conv2d(4,1, kernel_size=5) for _ in range(9)]+
+                                        [nn.Conv2d(6,1, kernel_size=5)])
 
     def forward(self, x):
-        # put implementation here
-        pass
-    
+        result = []
+        for i, conv in enumerate(self.conv_layer):
+            result.append(conv(x[:,self.ch_in[i],:,:]))
+        return torch.cat(result, dim=1)
+
+
 class LeNet(nn.Module) :
     def __init__(self) :
         super(LeNet, self).__init__()
@@ -74,7 +79,7 @@ class LeNet(nn.Module) :
                 nn.Tanh()
                 )
         self.C3_layer = nn.Sequential(
-                #C3_layer_full(),
+                # C3_layer_full(),
                 C3_layer(),
                 nn.Tanh()
                 )
@@ -115,46 +120,47 @@ optimizer = torch.optim.SGD(model.parameters(), lr=1e-1)
 # print total number of trainable parameters
 param_ct = sum([p.numel() for p in model.parameters()])
 print(f"Total number of trainable parameters: {param_ct}")
-
-'''
-Step 4
-'''
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=100, shuffle=True)
-
-import time
-start = time.time()
-for epoch in range(10) :
-    print("{}th epoch starting.".format(epoch))
-    for images, labels in train_loader :
-        images, labels = images.to(device), labels.to(device)
-        
-        optimizer.zero_grad()
-        train_loss = loss_function(model(images), labels)
-        train_loss.backward()
-
-        optimizer.step()
-end = time.time()
-print("Time ellapsed in training is: {}".format(end - start))
-
-
-'''
-Step 5
-'''
-test_loss, correct, total = 0, 0, 0
-
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=100, shuffle=False)
-
-for images, labels in test_loader :
-    images, labels = images.to(device), labels.to(device)
-
-    output = model(images)
-    test_loss += loss_function(output, labels).item()
-
-    pred = output.max(1, keepdim=True)[1]
-    correct += pred.eq(labels.view_as(pred)).sum().item()
-    
-    total += labels.size(0)
-            
-print('[Test set] Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-        test_loss /total, correct, total,
-        100. * correct / total))
+# k = [p.numel for p in model.C3_layer[C3_layer]]
+print(f"Specifically, the number of trainable parameters for C3 convolution layer: {sum([k.numel() for k in model.C3_layer[0].parameters()])}")
+# '''
+# Step 4
+# '''
+# train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=100, shuffle=True)
+#
+# import time
+# start = time.time()
+# for epoch in range(10) :
+#     print("{}th epoch starting.".format(epoch))
+#     for images, labels in train_loader :
+#         images, labels = images.to(device), labels.to(device)
+#
+#         optimizer.zero_grad()
+#         train_loss = loss_function(model(images), labels)
+#         train_loss.backward()
+#
+#         optimizer.step()
+# end = time.time()
+# print("Time ellapsed in training is: {}".format(end - start))
+#
+#
+# '''
+# Step 5
+# '''
+# test_loss, correct, total = 0, 0, 0
+#
+# test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=100, shuffle=False)
+#
+# for images, labels in test_loader :
+#     images, labels = images.to(device), labels.to(device)
+#
+#     output = model(images)
+#     test_loss += loss_function(output, labels).item()
+#
+#     pred = output.max(1, keepdim=True)[1]
+#     correct += pred.eq(labels.view_as(pred)).sum().item()
+#
+#     total += labels.size(0)
+#
+# print('[Test set] Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
+#         test_loss /total, correct, total,
+#         100. * correct / total))
