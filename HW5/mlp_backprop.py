@@ -21,7 +21,6 @@ b_list.append(torch.rand(1, 1))
 
 
 
-'''
 # Option 1: directly use PyTorch's autograd feature
 for A in A_list:
     A.requires_grad = True
@@ -36,9 +35,10 @@ for ell in range(L):
 # backward pass in pytorch
 loss=torch.square(y-Y_data)/2
 loss.backward()
+print("By PyTorch's autograd")
+print('dA: ', A_list[0].grad)
+print('db: ', b_list[0].grad)
 
-print(A_list[0].grad)
-'''
 
 '''
 # Option 2: construct a NN model and use backprop
@@ -64,6 +64,7 @@ loss = torch.square(model(X_data)-Y_data)/2
 loss.backward()
 
 print(model.linear[0].weight.grad)
+print(model.linear[0].bias.grad)
 '''
 
 
@@ -79,15 +80,18 @@ for ell in range(L):
 dA_list = []
 db_list = []
 dy = y-Y_data  # dloss/dy_L
-for ell in reversed(range(L)):
+for ell in reversed(range(L)): # ell = L-1, L-2, ... , 1, 0
     S = sigma_prime if ell<L-1 else lambda x: torch.ones(x.shape)
-    A, b, y = A_list[ell], b_list[ell], y_list[ell]
+    A, b, y = A_list[ell], b_list[ell], y_list[ell] # A_l+1, b_l+1, y_l
 
-    db = ...    # dloss/db_ell  
-    dA = ...    # dloss/dA_ell
-    dy = ...    # dloss/dy_{ell-1}
+    db = dy * S(A@y+b).t()    # dloss/db_ell
+    dA = S(A@y+b) * dy.t() @ y.t()    # dloss/dA_ell
+    dy = dy @ (S(A@y+b)*A)    # dloss/dy_{ell-1}
 
     dA_list.insert(0, dA)
     db_list.insert(0, db)
 
-print(dA_list[0])
+print("By implementing myself")
+print('dA:', dA_list[0])
+print('db:',db_list[0])
+
