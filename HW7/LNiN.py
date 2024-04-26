@@ -64,7 +64,7 @@ class Net2(nn.Module):
             for i in range(0, len(self.classifier), 2):
                 _sp = self.classifier[i].weight.shape
                 self.classifier[i].weight.copy_(net1.classifier[i].weight.reshape(_sp))
-                self.classifier[i].bias.copy_(torch.sum(net1.classifier[i].bias))
+                self.classifier[i].bias.copy_(net1.classifier[i].bias)
 
 
     def forward(self, x):
@@ -79,9 +79,10 @@ model2 = Net2()
 model2.copy_weights_from(model1)
 
 test_dataset = torchvision.datasets.CIFAR10(
-    root='./cifar_10data/',
+    root='./../DATA/cifar_10data/',
     train=False,
-    transform=torchvision.transforms.ToTensor()
+    transform=torchvision.transforms.ToTensor(),
+    download=True
 )
 
 test_loader = torch.utils.data.DataLoader(
@@ -95,7 +96,7 @@ print(f"Average Pixel Difference: {diff.item()}") # should be small
 
 
 test_dataset = torchvision.datasets.CIFAR10(
-    root='./cifar_10data/',
+    root='./../DATA/cifar_10data/',
     train=False,
     transform=torchvision.transforms.Compose([
         torchvision.transforms.Resize((36, 38)),
@@ -115,10 +116,7 @@ b, w, h = images.shape[0], images.shape[-1], images.shape[-2]
 out1 = torch.empty((b, 10, h - 31, w - 31))
 for i in range(h - 31):
     for j in range(w - 31):
-        ########################################################
-        ### TO DO: fill in ... to make out1 and out2 equal   ###
-        ########################################################
-        out1[:, :, i, j] = model1(...)
+        out1[:, :, i, j] = model1(images[:, :, i:i + 32, j:j + 32])
 out2 = model2(images)
 diff = torch.mean((out1 - out2) ** 2)
 

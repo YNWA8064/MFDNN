@@ -113,9 +113,9 @@ model.eval()
 # model_test.eval()  # not necessary since model_test has no BN or dropout 
 
 
-test_dataset = torchvision.datasets.CIFAR10(root='./cifar_10data/',
+test_dataset = torchvision.datasets.CIFAR10(root='./../DATA/cifar_10data',
                                 train=False, 
-                                transform=transforms.ToTensor(), download = True)
+                                transform=transforms.ToTensor(), download=False)
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=100, shuffle=False)
 
 diff = []
