@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 alpha = 0.1
-K = 1000
+K = 10000
 B = 128
 N = 512
 
@@ -70,13 +70,12 @@ model.layer3.bias.data = torch.full(model.layer3.bias.shape, 0.03)
 model.to(device)
 loss_fn = nn.MSELoss()
 optimizer = optim.SGD(model.parameters(), lr=alpha)
+# optimizer = optim.Adam(model.parameters())
 s3 = time.time()
 print('Model Initialization :', s3-s2)
 # Train
 for epoch in range(K):
     for x, y in train_dataloader:
-        print(x)
-        print(x.shape)
         x, y = x.to(device), y.to(device)
 
         optimizer.zero_grad()

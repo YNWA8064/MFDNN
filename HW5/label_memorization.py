@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 
 train_set = datasets.MNIST(root='./mnist_data/', train=True, transform=transforms.ToTensor(), download=True)
 
-train_set.data = train_set.data[:6000]
+idx = torch.randperm(len(train_set))[:6000]
+train_set.data = train_set.data[idx]
 train_set.targets = torch.randint(0, 10, size=(6000,))
 
 
@@ -75,35 +76,37 @@ Train_accuracy, Train_loss = [], []
 for epoch in range(150):
     print(f"\nEpoch {epoch + 1} / {epochs}")
     tl = 0
+    ta = 0
     for images, labels in train_loader:
         images, labels = images.to(device), labels.to(device)
 
         optimizer.zero_grad()
-
-        loss = loss_function(model(images), labels)
+        out = model(images)
+        loss = loss_function(out, labels)
         loss.backward()
-        with torch.no_grad():
-            ta = torch.sum(torch.max(model(images), dim=1).indices == labels).item()
-            tl += loss.item()
 
         optimizer.step()
-    Train_accuracy.append(ta/6000)
+        with torch.no_grad():
+            ta += torch.sum(torch.max(out, dim=1).indices == labels).item()
+            tl += loss.item()
+    Train_accuracy.append(ta/60)
     Train_loss.append(tl)
-    print(f"Train Loss: {tl}")
-    print(f'Train accuracy: {ta/6000}')
+    print(f"Train Loss: {tl:.4f}")
+    print(f'Train accuracy: {ta/60:.2f}%')
 
 tock = time.time()
 print(f"Total training time: {tock - tick}")
 
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif')
-plt.rc('font', size=14)
-plt.plot(list(range(150)), Train_accuracy, color='green', label='Train Accuracy')
-plt.plot(list(range(150)), Train_loss, color='red', label='Train Loss')
-plt.legend()
+fig, ax1 = plt.subplots()
+ax1.plot(list(range(150)), Train_accuracy, color='green', label='Train Accuracy')
+ax1.set_ylabel('Accuracy')
+ax1.tick_params('y')
+
+ax2 = ax1.twinx()
+ax2.plot(list(range(150)), Train_loss, color='red', label='Train Loss')
+ax2.set_ylabel('Loss')
+ax2.tick_params('y')
+
 plt.xlabel('Epochs')
-ax = plt.gca()
-ax2 = ax.twinx()
-ax.set_ylabel('Accuracy')
-ax2.set_ylabel('loss')
+fig.legend()
 plt.show()
