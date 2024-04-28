@@ -9,7 +9,7 @@ class MyConvLayer(nn.Module):
         super(MyConvLayer, self).__init__()
         self.conv1 = nn.Conv2d(256,128, 1)
         self.conv2 = nn.Conv2d(128, 128, 3, padding=1)
-        self.conv3 = nn.Conv2d(256, 256, 1)
+        self.conv3 = nn.Conv2d(128, 256, 1)
 
     def forward(self, x):
         out = nn.functional.relu(self.conv1(x))
@@ -32,6 +32,6 @@ class STMConvLayer(nn.Module):
 
     def forward(self, x):
         out = self.conv_layer[0](x)
-        for i in range(1,32):
-            out += self.conv_layer[i](out)
+        for i in range(1, 32):
+            out += self.conv_layer[i](x)
         return out
